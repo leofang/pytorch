@@ -520,6 +520,11 @@ at::Tensor LazyNativeFunctions::max_pool3d_with_indices_backward(
 }
 
 at::Tensor & LazyNativeFunctions::normal_(at::Tensor & self, double mean, double std, c10::optional<at::Generator> generator) {
+
+    if (force_eager_fallback(c10::Symbol::fromQualString("aten::normal_"))) {
+      return at::native::call_fallback_fn<&ltc_eager_fallback, ATEN_OP(normal_)>::call(self, mean, std, generator);
+    }
+
     if (generator.has_value()) {
       return at::native::call_fallback_fn<&ltc_eager_fallback, ATEN_OP(normal_)>::call(self, mean, std, generator);
     }
