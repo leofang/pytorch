@@ -717,6 +717,35 @@ std::tuple<at::Tensor, at::Tensor> clamp_backward_min_max(
   return ret;
 }
 
+Tensor convolution_jvp(
+    const Tensor& input_p, const Tensor& input_t,
+    const Tensor& weight_p, const Tensor& weight_t,
+    const Tensor& bias_p, const Tensor& bias_t,
+    IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation,
+    bool transposed, IntArrayRef output_padding, int64_t groups) {
+  auto bias_t_opt = bias_t.defined() ? c10::optional<at::Tensor>(bias_t) : c10::nullopt;
+  return (
+      at::convolution(input_t, weight_p, c10::nullopt, stride, padding, dilation, transposed, output_padding, groups)
+    + at::convolution(input_p, weight_t, bias_t_opt, stride, padding, dilation, transposed, output_padding, groups));
+}
+
+Tensor _convolution_jvp(
+    const Tensor& input_p, const Tensor& input_t,
+    const Tensor& weight_p, const Tensor& weight_t,
+    const Tensor& bias_p, const Tensor& bias_t,
+    IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation,
+    bool transposed, IntArrayRef output_padding, int64_t groups,
+    bool benchmark, bool deterministic, bool cudnn_enabled, bool allow_tf32) {
+  auto bias_t_opt = bias_t.defined() ? c10::optional<at::Tensor>(bias_t) : c10::nullopt;
+  return (
+      at::_convolution(
+        input_t, weight_p, c10::nullopt, stride, padding, dilation, transposed, output_padding,
+        groups, benchmark, deterministic, cudnn_enabled, allow_tf32)
+    + at::_convolution(
+        input_p, weight_t, bias_t_opt, stride, padding, dilation, transposed, output_padding,
+        groups, benchmark, deterministic, cudnn_enabled, allow_tf32));
+}
+
 // This function is used by load_derivatives.py to replace tensor.strides()
 // calls that appear in derivative formulas. If the tensor has requires_grad
 // set, this function returns its strides or throws an error if the tensor
